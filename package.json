@@ -37,8 +37,8 @@
     "watchify": "^2.1.0"
   },
   "dependencies": {
-    "xhr": "^1.17.0",
-    "babelify": "^6.0.0",
-    "react": "0.13.x"
+    "babelify": "^8.0.0",
+    "react": "^16.4.2",
+    "xhr": "^2.5.0"
   }
 }

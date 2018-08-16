@@ -1,67 +1,35 @@
-var React = require('react'),
-  ReactDOM = require('react-dom'),
-  search = require('./search');
+import React, { Component, Fragment } from "react";
+import ReactDOM from "react-dom";
+import search from "./search";
 
 /**
  * Geocoder component: connects to Mapbox.com Geocoding API
  * and provides an autocompleting interface for finding locations.
  */
-var Geocoder = React.createClass({
-  getDefaultProps() {
-    return {
-      endpoint: 'https://api.tiles.mapbox.com',
-      inputClass: '',
-      resultClass: '',
-      resultsClass: '',
-      resultFocusClass: 'strong',
-      inputPosition: 'top',
-      inputPlaceholder: 'Search',
-      showLoader: false,
-      source: 'mapbox.places',
-      proximity: '',
-      bbox: '',
-      types: '',
-      onSuggest: function() {},
-      focusOnMount: true
-    };
-  },
-  getInitialState() {
-    return {
+class Geocoder extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
       results: [],
       focus: null,
       loading: false,
-      searchTime: new Date()
+      searchTime: new Date(),
+      value: ""
     };
-  },
-  propTypes: {
-    endpoint: React.PropTypes.string,
-    source: React.PropTypes.string,
-    inputClass: React.PropTypes.string,
-    resultClass: React.PropTypes.string,
-    resultsClass: React.PropTypes.string,
-    inputPosition: React.PropTypes.string,
-    inputPlaceholder: React.PropTypes.string,
-    resultFocusClass: React.PropTypes.string,
-    onSelect: React.PropTypes.func.isRequired,
-    onSuggest: React.PropTypes.func,
-    accessToken: React.PropTypes.string.isRequired,
-    proximity: React.PropTypes.string,
-    bbox: React.PropTypes.string,
-    showLoader: React.PropTypes.bool,
-    focusOnMount: React.PropTypes.bool,
-    types: React.PropTypes.string
-  },
+  }
+
   componentDidMount() {
-    if (this.props.focusOnMount) ReactDOM.findDOMNode(this.refs.input).focus();
-  },
-  onInput(e) {
-    this.setState({loading:true});
+    this.props.focusOnMount && ReactDOM.findDOMNode(this.refs.input).focus();
+  }
+
+  onInput = e => {
+    this.setState({ loading: true });
     var value = e.target.value;
-    if (value === '') {
+    if (value === "") {
       this.setState({
         results: [],
         focus: null,
-        loading:false
+        loading: false
       });
     } else {
       search(
@@ -72,25 +40,36 @@ var Geocoder = React.createClass({
         this.props.bbox,
         this.props.types,
         value,
-        this.onResult);
+        this.onResult
+      );
     }
-  },
-  moveFocus(dir) {
-    if(this.state.loading) return;
+  };
+  onChange = e => {
     this.setState({
-      focus: this.state.focus === null ?
-        0 : Math.max(0,
-          Math.min(
-            this.state.results.length - 1,
-            this.state.focus + dir))
+      value: e.target.value
     });
-  },
-  acceptFocus() {
+  };
+
+  moveFocus = dir => {
+    if (this.state.loading) return;
+    this.setState({
+      focus:
+        this.state.focus === null
+          ? 0
+          : Math.max(
+              0,
+              Math.min(this.state.results.length - 1, this.state.focus + dir)
+            )
+    });
+  };
+
+  acceptFocus = () => {
     if (this.state.focus !== null) {
       this.props.onSelect(this.state.results[this.state.focus]);
     }
-  },
-  onKeyDown(e) {
+  };
+
+  onKeyDown = e => {
     switch (e.which) {
       // up
       case 38:
@@ -103,14 +82,17 @@ var Geocoder = React.createClass({
         break;
       // accept
       case 13:
-        if( this.state.results.length > 0 && this.state.focus == null) {
-          this.clickOption(this.state.results[0],0);
+        if (this.state.results.length > 0 && this.state.focus == null) {
+          this.clickOption(this.state.results[0], 0);
         }
         this.acceptFocus();
         break;
+      default:
+        break;
     }
-  },
-  onResult(err, res, body, searchTime) {
+  };
+
+  onResult = (err, res, body, searchTime) => {
     // searchTime is compared with the last search to set the state
     // to ensure that a slow xhr response does not scramble the
     // sequence of autocomplete display.
@@ -123,41 +105,78 @@ var Geocoder = React.createClass({
       });
       this.props.onSuggest(this.state.results);
     }
-  },
-  clickOption(place, listLocation) {
+  };
+
+  clickOption = (place, listLocation) => {
     this.props.onSelect(place);
-    this.setState({focus:listLocation});
+    this.setState({ focus: listLocation });
     // focus on the input after click to maintain key traversal
     ReactDOM.findDOMNode(this.refs.input).focus();
+
+    this.setState({ results: [], value: place.text });
     return false;
-  },
+  };
+
   render() {
-    var input = <input
-      ref='input'
-      className={this.props.inputClass}
-      onInput={this.onInput}
-      onKeyDown={this.onKeyDown}
-      placeholder={this.props.inputPlaceholder}
-      type='text' />;
+    var input = (
+      <input
+        ref="input"
+        className={this.props.inputClass}
+        onInput={this.onInput}
+        onChange={this.onChange}
+        onKeyDown={this.onKeyDown}
+        placeholder={this.props.inputPlaceholder}
+        type="text"
+        value={this.state.value}
+      />
+    );
     return (
-      <div>
-        {this.props.inputPosition === 'top' && input}
+      <Fragment>
+        {this.props.inputPosition === "top" && input}
         {this.state.results.length > 0 && (
-          <ul className={`${this.props.showLoader && this.state.loading ? 'loading' : ''} ${this.props.resultsClass}`}>
+          <ul
+            className={`${this.props.showLoader && this.state.loading
+              ? "loading"
+              : ""} ${this.props.resultsClass}`}
+          >
             {this.state.results.map((result, i) => (
               <li key={result.id}>
-                <a href='#'
+                <a
                   onClick={this.clickOption.bind(this, result, i)}
-                  className={this.props.resultClass + ' ' + (i === this.state.focus ? this.props.resultFocusClass : '')}
-                  key={result.id}>{result.place_name}</a>
+                  className={
+                    this.props.resultClass +
+                    " " +
+                    (i === this.state.focus ? this.props.resultFocusClass : "")
+                  }
+                  key={result.id}
+                >
+                  {result.place_name}
+                </a>
               </li>
             ))}
           </ul>
         )}
-        {this.props.inputPosition === 'bottom' && input}
-      </div>
+        {this.props.inputPosition === "bottom" && input}
+      </Fragment>
     );
   }
-});
+}
 
-module.exports = Geocoder;
+Geocoder.defaultProps = {
+  endpoint: "https://api.tiles.mapbox.com",
+  inputClass: "",
+  resultClass: "",
+  resultsClass: "",
+  resultFocusClass: "strong",
+  inputPosition: "top",
+  inputPlaceholder: "Search",
+  showLoader: false,
+  source: "mapbox.places",
+  proximity: "",
+  bbox: "",
+  types: "",
+  onSuggest: () => {},
+  focusOnMount: true
+};
+
+export default Geocoder;
